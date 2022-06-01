@@ -173,8 +173,6 @@ export const CreateCoverForm: FC = () => {
     _data.stakeWithFees = formData.npmStake;
     _data.reassurance = formData.reassuranceAmount;
     _data.initialLiquidity = "";
-
-    console.log({ _data });
   }, [formData]);
 
   const isEmpty = {
