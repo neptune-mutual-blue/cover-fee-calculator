@@ -238,7 +238,6 @@ export const CreateCoverForm: FC = () => {
     fieldName: keyof FormData,
     fieldValue: string | string[] | TagValue[] | boolean | Saved[]
   ) => {
-    // console.log({ fieldName, fieldValue });
     setFormData((val) => ({ ...val, [fieldName]: fieldValue }));
   };
 
@@ -475,8 +474,6 @@ export const CreateCoverForm: FC = () => {
             helpText={
               <span className="text-sm font-poppins">
                 Balance: {balance.npm}
-                <br />
-                Minimum Stake: {balance.minStake}
                 {error.npm && (
                   <>
                     <br />
@@ -485,6 +482,8 @@ export const CreateCoverForm: FC = () => {
                     </span>
                   </>
                 )}
+                <br />
+                Minimum Stake: {balance.minStake}
               </span>
             }
             value={formData.npmStake}
