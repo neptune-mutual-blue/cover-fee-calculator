@@ -240,7 +240,6 @@ export const CreateCoverForm: FC = () => {
     fieldName: keyof FormData,
     fieldValue: string | string[] | TagValue[] | boolean | Saved[]
   ) => {
-    // console.log({ fieldName, fieldValue });
     setFormData((val) => ({ ...val, [fieldName]: fieldValue }));
   };
 
