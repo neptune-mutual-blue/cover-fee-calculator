@@ -125,17 +125,17 @@ export const CreateCoverForm: FC = () => {
       parseFloat(convertFromUnits(npmBalance).toString()),
       npmTokenSymbol,
       true
-    ).number,
+    ).short,
     dai: formatCurrency(
       parseFloat(convertFromUnits(reTokenBalance).toString()),
       liquidityTokenSymbol,
       true
-    ).number,
+    ).short,
     minStake: formatCurrency(
       parseFloat(convertFromUnits(coverMinStake).toString()),
       npmTokenSymbol,
       true
-    ).number,
+    ).short,
   };
 
   const formatData = useCallback(() => {
