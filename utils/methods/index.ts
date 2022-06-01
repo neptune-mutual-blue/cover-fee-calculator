@@ -50,7 +50,7 @@ const formatCurrency = (input: number, currency = "USD", token = false) => {
   const number = parseFloat(Math.abs(input).toString());
 
   if (!number) {
-    return { short: "N/A", long: "Not available" };
+    return { short: "N/A", long: "Not available", number };
   }
 
   const sign = input < 0 ? "-" : "";
@@ -85,6 +85,7 @@ const formatCurrency = (input: number, currency = "USD", token = false) => {
   return {
     short: asCurrency(sign, result, symbol, currency, token),
     long: asCurrency(sign, number, "", currency, token),
+    number,
   };
 };
 

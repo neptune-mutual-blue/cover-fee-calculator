@@ -125,17 +125,17 @@ export const CreateCoverForm: FC = () => {
       parseFloat(convertFromUnits(npmBalance).toString()),
       npmTokenSymbol,
       true
-    ).short,
+    ).number,
     dai: formatCurrency(
       parseFloat(convertFromUnits(reTokenBalance).toString()),
       liquidityTokenSymbol,
       true
-    ).short,
+    ).number,
     minStake: formatCurrency(
       parseFloat(convertFromUnits(coverMinStake).toString()),
       npmTokenSymbol,
       true
-    ).short,
+    ).number,
   };
 
   const formatData = useCallback(() => {
@@ -173,6 +173,8 @@ export const CreateCoverForm: FC = () => {
     _data.stakeWithFees = formData.npmStake;
     _data.reassurance = formData.reassuranceAmount;
     _data.initialLiquidity = "";
+
+    console.log({ _data });
   }, [formData]);
 
   const isEmpty = {
@@ -475,8 +477,6 @@ export const CreateCoverForm: FC = () => {
             helpText={
               <span className="text-sm font-poppins">
                 Balance: {balance.npm}
-                <br />
-                Minimum Stake: {balance.minStake}
                 {error.npm && (
                   <>
                     <br />
@@ -485,6 +485,8 @@ export const CreateCoverForm: FC = () => {
                     </span>
                   </>
                 )}
+                <br />
+                Minimum Stake: {balance.minStake}
               </span>
             }
             value={formData.npmStake}
