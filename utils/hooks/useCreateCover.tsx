@@ -22,7 +22,6 @@ import { useERC20Balance } from "./useERC20Balance";
 import { convertFromUnits } from "@utils/functions/bn";
 import { ICoverInfo } from "@neptunemutual/sdk/dist/types";
 import { useERC20Allowance } from "./useERC20Allowance";
-import { formatBytes32String } from "@ethersproject/strings";
 
 export const useCreateCover = ({
   reValue,
@@ -160,10 +159,6 @@ export const useCreateCover = ({
     };
 
     const reAmount = convertToUnits(reValue).toString();
-    // const spender = await registry.Staking.getAddress(
-    //   networkId,
-    //   signerOrProvider
-    // );
     approveReAllowance(liquidityTokenAddress, reAmount, {
       onTransactionResult,
       onError,
@@ -205,10 +200,6 @@ export const useCreateCover = ({
     };
 
     const npmAmount = convertToUnits(npmValue).toString();
-    // const spender = await registry.Staking.getAddress(
-    //   networkId,
-    //   signerOrProvider
-    // );
     approveNPMAllowance(NPMTokenAddress, npmAmount, {
       onTransactionResult,
       onError,
@@ -217,10 +208,15 @@ export const useCreateCover = ({
   };
 
   const handleCreateCover = async (coverInfo: ICoverInfo) => {
+    if (!account || !networkId || !npmApproved || !reApproved) return;
     setCreating(true);
 
     const cleanup = () => {
       setCreating(false);
+      updateNPMAllowance(NPMTokenAddress);
+      updateNpmBalance();
+      updateReAllowance(liquidityTokenAddress);
+      updateReTokenBalance();
     };
     const handleError = (err: any) => {
       notifyError(err, "create cover");
@@ -241,11 +237,7 @@ export const useCreateCover = ({
     };
 
     try {
-      const signerOrProvider = getProviderOrSigner(
-        library,
-        account ?? undefined,
-        networkId
-      );
+      const signerOrProvider = getProviderOrSigner(library, account, networkId);
 
       const tx = await cover.createCover(
         networkId,
@@ -291,5 +283,6 @@ export const useCreateCover = ({
     handleReTokenApprove,
     handleNPMTokenApprove,
     handleCreateCover,
+    creating,
   };
 };
