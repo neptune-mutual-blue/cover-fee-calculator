@@ -263,11 +263,13 @@ export const useCreateCover = ({
   const npmApproved =
     npmValue &&
     isValidNumber(npmValue) &&
+    isGreater(convertFromUnits(npmAllowance).toString(), 0) &&
     isGreaterOrEqual(convertFromUnits(npmAllowance).toString(), npmValue);
 
   const reApproved =
     reValue &&
     isValidNumber(reValue) &&
+    isGreater(convertFromUnits(reAllowance).toString(), 0) &&
     isGreaterOrEqual(convertFromUnits(reAllowance).toString(), reValue);
 
   return {
