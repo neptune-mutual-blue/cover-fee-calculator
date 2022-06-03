@@ -244,7 +244,12 @@ export const CreateCoverForm: FC = () => {
     )
       return setSubmitDisabled(true);
 
-    if (!tags.length || !networkList.length || !socialProfiles.length)
+    if (
+      !tags.length ||
+      !networkList.length ||
+      !socialProfiles.length ||
+      !socialProfiles.find(({ profile }) => profile === "website")
+    )
       return setSubmitDisabled(true);
 
     if (resolutionResource.length && allNullItemsArray(resolutionResource))
@@ -361,6 +366,7 @@ export const CreateCoverForm: FC = () => {
               handleInputChange("requiresWhitelist", checked)
             }
             className="w-4 h-4"
+            wrapperClass="items-center"
           />
           <Tooltip
             text="If you select this checkbox, only pre-whitelisted addresses will
