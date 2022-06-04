@@ -5,22 +5,23 @@ import { useWeb3React } from "@web3-react/core";
 import {
   convertToUnits,
   isGreater,
+  isGreaterOrEqual,
   isLessOrEqual,
   isLessThan,
+  isValidNumber,
 } from "@utils/functions/bn";
 import { getProviderOrSigner } from "@wallet/utils/web3";
 import { useTxToast } from "./useTxToast";
 import { useErrorNotifier } from "./useErrorNotifier";
 import { useNetwork } from "@wallet/context/Network";
 import { useAppConstants } from "@utils/app-constants/context";
-// import { useInvokeMethod } from "./useInvokeMethod";
-// import { useApprovalAmount } from "./useApprovalAmount";
 import { getCoverMinStake } from "@utils/helpers/getCoverMinStake";
 import { getCoverCreationFee } from "@utils/helpers/getCoverCreationFee";
 import { useERC20Balance } from "./useERC20Balance";
 
 import { convertFromUnits } from "@utils/functions/bn";
 import { ICoverInfo } from "@neptunemutual/sdk/dist/types";
+import { useERC20Allowance } from "./useERC20Allowance";
 
 export const useCreateCover = ({
   reValue,
@@ -33,14 +34,6 @@ export const useCreateCover = ({
   const [reApproving, setReApproving] = useState(false);
   const [npmApproving, setNPMApproving] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [reApproved, setReApproved] = useState<{
-    curr?: string;
-    prev?: string;
-  }>({ curr: undefined, prev: undefined });
-  const [npmApproved, setNPMApproved] = useState<{
-    curr?: string;
-    prev?: string;
-  }>({ curr: undefined, prev: undefined });
 
   const [error, setError] = useState({ npm: "", dai: "" });
 
@@ -50,11 +43,25 @@ export const useCreateCover = ({
   const { library, account } = useWeb3React();
 
   const { liquidityTokenAddress, NPMTokenAddress } = useAppConstants();
+
+  const {
+    allowance: reAllowance,
+    loading: loadingReAllowance,
+    refetch: updateReAllowance,
+    approve: approveReAllowance,
+  } = useERC20Allowance(liquidityTokenAddress);
   const {
     balance: reTokenBalance,
     loading: reTokenBalanceLoading,
     refetch: updateReTokenBalance,
   } = useERC20Balance(liquidityTokenAddress);
+
+  const {
+    allowance: npmAllowance,
+    loading: loadingNPMAllowance,
+    refetch: updateNPMAllowance,
+    approve: approveNPMAllowance,
+  } = useERC20Allowance(NPMTokenAddress);
   const {
     balance: npmBalance,
     loading: npmBalanceLoading,
@@ -110,13 +117,12 @@ export const useCreateCover = ({
   }, [npmValue, npmBalance, reTokenBalance, reValue, coverMinStake]);
 
   useEffect(() => {
-    if (npmApproved.prev && isLessThan(npmApproved.prev, npmValue))
-      setNPMApproved((v) => ({ ...v, curr: undefined }));
-    else setNPMApproved((v) => ({ curr: v.prev, prev: v.prev }));
-    if (reApproved.prev && isLessThan(reApproved.prev, reValue))
-      setReApproved((v) => ({ ...v, curr: undefined }));
-    else setReApproved((v) => ({ curr: v.prev, prev: v.prev }));
-  }, [npmValue, reValue]);
+    updateReAllowance(liquidityTokenAddress);
+  }, [liquidityTokenAddress, updateReAllowance]);
+
+  useEffect(() => {
+    updateNPMAllowance(NPMTokenAddress);
+  }, [NPMTokenAddress, updateNPMAllowance]);
 
   const handleReTokenApprove = async () => {
     setReApproving(true);
@@ -137,37 +143,27 @@ export const useCreateCover = ({
           failure: "Could not approve NPM",
         });
         cleanup();
-        setReApproved({ curr: reValue, prev: reValue });
       } catch (err) {
         handleError(err);
         cleanup();
       }
     };
 
-    try {
-      const signerOrProvider = getProviderOrSigner(
-        library,
-        account ?? undefined,
-        networkId
-      );
-
-      const reAmount = convertToUnits(reValue).toString();
-      const spender = await registry.Staking.getAddress(
-        networkId,
-        signerOrProvider
-      );
-      const tx = await cover.approveReassurance(
-        networkId,
-        liquidityTokenAddress,
-        { amount: reAmount, spender },
-        signerOrProvider
-      );
-
-      onTransactionResult(tx.result);
-    } catch (err) {
+    const onRetryCancel = () => {
       cleanup();
+    };
+
+    const onError = (err: any) => {
       handleError(err);
-    }
+      cleanup();
+    };
+
+    const reAmount = convertToUnits(reValue).toString();
+    approveReAllowance(liquidityTokenAddress, reAmount, {
+      onTransactionResult,
+      onError,
+      onRetryCancel,
+    });
   };
 
   const handleNPMTokenApprove = async () => {
@@ -188,43 +184,39 @@ export const useCreateCover = ({
           failure: "Could not approve NPM",
         });
         cleanup();
-        setNPMApproved({ curr: npmValue, prev: npmValue });
       } catch (err) {
         handleError(err);
         cleanup();
       }
     };
 
-    try {
-      const signerOrProvider = getProviderOrSigner(
-        library,
-        account ?? undefined,
-        networkId
-      );
-
-      const npmAmount = convertToUnits(npmValue).toString();
-      const spender = await registry.Staking.getAddress(
-        networkId,
-        signerOrProvider
-      );
-      const tx = await cover.approveStakeAndFees(
-        networkId,
-        { amount: npmAmount, spender },
-        signerOrProvider
-      );
-
-      onTransactionResult(tx.result);
-    } catch (err) {
+    const onRetryCancel = () => {
       cleanup();
+    };
+
+    const onError = (err: any) => {
       handleError(err);
-    }
+      cleanup();
+    };
+
+    const npmAmount = convertToUnits(npmValue).toString();
+    approveNPMAllowance(NPMTokenAddress, npmAmount, {
+      onTransactionResult,
+      onError,
+      onRetryCancel,
+    });
   };
 
   const handleCreateCover = async (coverInfo: ICoverInfo) => {
+    if (!account || !networkId || !npmApproved || !reApproved) return;
     setCreating(true);
 
     const cleanup = () => {
       setCreating(false);
+      updateNPMAllowance(NPMTokenAddress);
+      updateNpmBalance();
+      updateReAllowance(liquidityTokenAddress);
+      updateReTokenBalance();
     };
     const handleError = (err: any) => {
       notifyError(err, "create cover");
@@ -245,11 +237,7 @@ export const useCreateCover = ({
     };
 
     try {
-      const signerOrProvider = getProviderOrSigner(
-        library,
-        account ?? undefined,
-        networkId
-      );
+      const signerOrProvider = getProviderOrSigner(library, account, networkId);
 
       const tx = await cover.createCover(
         networkId,
@@ -264,15 +252,27 @@ export const useCreateCover = ({
     }
   };
 
+  const npmApproved =
+    npmValue &&
+    isValidNumber(npmValue) &&
+    isGreater(convertFromUnits(npmAllowance).toString(), 0) &&
+    isGreaterOrEqual(convertFromUnits(npmAllowance).toString(), npmValue);
+
+  const reApproved =
+    reValue &&
+    isValidNumber(reValue) &&
+    isGreater(convertFromUnits(reAllowance).toString(), 0) &&
+    isGreaterOrEqual(convertFromUnits(reAllowance).toString(), reValue);
+
   return {
     npmApproving,
-    npmApproved: Boolean(npmApproved.curr),
+    npmApproved: npmApproved,
     npmBalance,
     npmBalanceLoading,
     updateNpmBalance,
 
     reApproving,
-    reApproved: Boolean(reApproved.curr),
+    reApproved: reApproved,
     reTokenBalance,
     reTokenBalanceLoading,
     updateReTokenBalance,
@@ -283,5 +283,6 @@ export const useCreateCover = ({
     handleReTokenApprove,
     handleNPMTokenApprove,
     handleCreateCover,
+    creating,
   };
 };

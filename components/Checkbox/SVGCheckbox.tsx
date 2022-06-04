@@ -7,6 +7,7 @@ interface SVGCheckboxProps {
   label?: string | ReactNode;
   className?: string;
   labelClass?: string;
+  wrapperClass?: string;
 }
 
 export const SVGCheckbox: FC<SVGCheckboxProps> = ({
@@ -15,9 +16,10 @@ export const SVGCheckbox: FC<SVGCheckboxProps> = ({
   onChange,
   label,
   labelClass = "",
+  wrapperClass = "",
 }) => {
   return (
-    <div className="flex items-start">
+    <div className={classNames("flex items-start", wrapperClass)}>
       <button
         onClick={() => onChange(!checked)}
         className="outline-none cursor-default focus:ring-2"

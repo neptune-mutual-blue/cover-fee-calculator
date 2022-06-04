@@ -3,6 +3,7 @@ import {
   formatBytes32String,
 } from "@ethersproject/strings";
 import { sumOf, toBN } from "@utils/functions/bn";
+import BigNumber from "bignumber.js";
 
 export const getParsedKey = (bytes32String: string) => {
   try {
@@ -64,3 +65,9 @@ export const calculateCoverStats = (cover: any) => {
 
   return defaultStats;
 };
+
+export const toEther = (x: string) =>
+  new BigNumber((parseFloat(x) * 10 ** 18).toString()).toString();
+
+export const percentage = (x: string) =>
+  new BigNumber((parseFloat(x) * 10000).toString()).dividedBy(100).toString();

@@ -22,6 +22,8 @@ import { Tooltip } from "@components/common/Tooltip";
 import { SVGCheckbox } from "@components/Checkbox/SVGCheckbox";
 import useMediaQuery from "@utils/hooks/useMediaQuery";
 import { Saved, SocialProfileSelect } from "@components/SocialProfileSelect";
+import { ICoverInfo } from "@neptunemutual/sdk/dist/types";
+import { percentage, toBytes32, toEther } from "@utils/helpers/cover";
 
 interface FormData {
   coverName: string;
@@ -91,6 +93,9 @@ export const CreateCoverForm: FC = () => {
   const [submitDisabled, setSubmitDisabled] = useState(true);
 
   const [showTooltip, setShowTooltip] = useState(false);
+
+  const [submitData, setSubmitData] = useState<ICoverInfo>();
+
   const isMobile = useMediaQuery("(max-width: 768px)");
 
   const {
@@ -110,6 +115,7 @@ export const CreateCoverForm: FC = () => {
     handleReTokenApprove,
     handleNPMTokenApprove,
     handleCreateCover,
+    creating: creatingCover,
   } = useCreateCover({
     coverKey: "asds",
     reValue: formData.reassuranceAmount,
@@ -139,8 +145,11 @@ export const CreateCoverForm: FC = () => {
   };
 
   const formatData = useCallback(() => {
+    const key = toBytes32(
+      formData.coverName.trim().toLowerCase().split(" ").join("-")
+    );
     const _data: any = {};
-    _data.key = formData.coverName.trim().toLowerCase().split(" ").join("-");
+    _data.key = key;
     _data.coverName = formData.coverName;
     _data.projectName = formData.projectName;
     _data.tags = formData.tags;
@@ -148,31 +157,46 @@ export const CreateCoverForm: FC = () => {
     _data.blockchains = formData.networkList;
     _data.rules = formData.coverRules;
 
-    _data.links = {};
-    enum links {
-      "website",
-      "documentation",
-      "telegram",
-      "twitter",
-      "github",
-      "facebook",
-      "blog",
-      "discord",
-      "linkedin",
-      "slack",
-    }
-    formData.socialProfiles.map((item, i) => (_data.links[links[i]] = item));
+    _data.links = {
+      website: "",
+      documentation: "",
+      telegram: "",
+      twitter: "",
+      github: "",
+      facebook: "",
+      blog: "",
+      discord: "",
+      linkedin: "",
+      slack: "",
+    };
 
-    _data.pricingFloor = formData.floorRate;
-    _data.pricingCeiling = formData.ceilingRate;
+    type links =
+      | "website"
+      | "documentation"
+      | "telegram"
+      | "twitter"
+      | "github"
+      | "facebook"
+      | "blog"
+      | "discord"
+      | "linkedin"
+      | "slack";
+
+    formData.socialProfiles.map(
+      ({ profile, text }) => (_data.links[profile as links] = text)
+    );
+
+    _data.pricingFloor = percentage(formData.floorRate);
+    _data.pricingCeiling = percentage(formData.ceilingRate);
     _data.reportingPeriod = formData.reportingPeriod;
     _data.cooldownPeriod = formData.cooldownPeriod;
     _data.claimPeriod = formData.claimPeriod;
-    _data.minReportingStake = formData.minimumStake;
+    _data.minReportingStake = toEther(formData.minimumStake);
     _data.resolutionSources = formData.resolutionResource;
-    _data.stakeWithFees = formData.npmStake;
-    _data.reassurance = formData.reassuranceAmount;
-    _data.initialLiquidity = "";
+    _data.stakeWithFees = toEther(formData.npmStake);
+    _data.reassurance = toEther(formData.reassuranceAmount);
+
+    setSubmitData(_data);
   }, [formData]);
 
   const isEmpty = {
@@ -220,7 +244,12 @@ export const CreateCoverForm: FC = () => {
     )
       return setSubmitDisabled(true);
 
-    if (!tags.length || !networkList.length || !socialProfiles.length)
+    if (
+      !tags.length ||
+      !networkList.length ||
+      !socialProfiles.length ||
+      !socialProfiles.find(({ profile }) => profile === "website")
+    )
       return setSubmitDisabled(true);
 
     if (resolutionResource.length && allNullItemsArray(resolutionResource))
@@ -232,6 +261,7 @@ export const CreateCoverForm: FC = () => {
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (submitData) handleCreateCover(submitData);
   };
 
   const handleInputChange = (
@@ -336,6 +366,7 @@ export const CreateCoverForm: FC = () => {
               handleInputChange("requiresWhitelist", checked)
             }
             className="w-4 h-4"
+            wrapperClass="items-center"
           />
           <Tooltip
             text="If you select this checkbox, only pre-whitelisted addresses will
@@ -565,7 +596,7 @@ export const CreateCoverForm: FC = () => {
           text={`Create ${formData.coverName || "Cover"}`}
           type="submit"
           className="w-full mt-8 py-btn-y px-btn-x sm:px-16 lg:px-btn-x sm:w-auto"
-          disabled={submitDisabled}
+          disabled={submitDisabled || creatingCover}
         />
       </form>
     </div>
